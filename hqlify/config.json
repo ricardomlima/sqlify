@@ -1,0 +1,6 @@
+{
+    "columns":[
+        {"column","cmpt"},
+        {"column","esfera_administrativa", "on": "esfera_adm"}
+     ]
+}
