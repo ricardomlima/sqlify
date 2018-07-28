@@ -36,6 +36,7 @@ class Hqlify:
         select_statements = ','.join(self.selects)
         join_statements   = ','.join(self.joins)
         hql = "SELECT {} FROM {} {}".format(select_statements, main_table, join_statements)
+
         return hql
 
     def build_field_statement(self, table, column, alias=None, database=None):
@@ -92,6 +93,12 @@ class Hqlify:
                 self.selects.append(field_statement)
 
     def build_join_statement(self, main_table, join_field, reference_database, reference_table):
+        """
+        Build join statements along with
+        their respective select statements
+
+        """
+
         reference_field = "CD_{}".format(reference_table)
         reference_description_field = "DESC_{}".format(reference_table)
         query_data = {
