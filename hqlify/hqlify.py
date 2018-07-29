@@ -115,13 +115,15 @@ class Hqlify:
             if "on" in field:
                 join_field = field["on"]
                 reference_table = field["table"]
+                field_selector = field["field"] if "field" in field else None
 
                 self.build_join_statement(
                     main_database,
                     main_table,
                     join_field,
                     reference_database,
-                    reference_table
+                    reference_table,
+                    field_selector
                 )
 
             else:
@@ -135,15 +137,18 @@ class Hqlify:
                     database=main_database, table=main_table, column=column, alias=column)
                 self.selects.append(field_statement)
 
-    def build_join_statement(self, main_database, main_table, join_field, reference_database, reference_table):
+    def build_join_statement(self, main_database, main_table, join_field, reference_database, reference_table, field=None):
         """
         Build join statements along with
         their respective select statements
 
         """
 
-        reference_field = "CD_{}".format(reference_table)
-        reference_description_field = "DESC_{}".format(reference_table)
+        field_selector = reference_table if field is None else field
+
+        reference_field = "CD_{}".format(field_selector)
+        reference_description_field = "DESC_{}".format(field_selector)
+
         reference_source_alias = self.get_source_alias(reference_database, reference_table)
         reference_source_alias_statement = self.get_source_alias_statement(reference_database, reference_table)
 
