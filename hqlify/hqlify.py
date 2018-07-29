@@ -43,6 +43,7 @@ class Hqlify:
         select_statements = ','.join(self.selects)
         froms_statements = ','.join(self.froms)
         join_statements = ' '.join(self.joins)
+
         hql = "SELECT {} FROM {} {}".format(
             select_statements, froms_statements, join_statements)
 
@@ -116,6 +117,7 @@ class Hqlify:
                 reference_table = field["table"]
 
                 self.build_join_statement(
+                    main_database,
                     main_table,
                     join_field,
                     reference_database,
@@ -133,7 +135,7 @@ class Hqlify:
                     database=main_database, table=main_table, column=column, alias=column)
                 self.selects.append(field_statement)
 
-    def build_join_statement(self, main_table, join_field, reference_database, reference_table):
+    def build_join_statement(self, main_database, main_table, join_field, reference_database, reference_table):
         """
         Build join statements along with
         their respective select statements
@@ -142,15 +144,21 @@ class Hqlify:
 
         reference_field = "CD_{}".format(reference_table)
         reference_description_field = "DESC_{}".format(reference_table)
+        reference_source_alias = self.get_source_alias(reference_database, reference_table)
+        reference_source_alias_statement = self.get_source_alias_statement(reference_database, reference_table)
+
+        main_table_alias = self.get_source_alias(main_database, main_table)
+
         query_data = {
-            "main_table": main_table,
+            "main_table_alias": main_table_alias,
             "join_field": join_field,
-            "reference_database": reference_database,
             "reference_field": reference_field,
-            "reference_table": reference_table
+            "reference_source_alias_statement": reference_source_alias_statement,
+            "reference_source_alias": reference_source_alias,
         }
-        join_query = "LEFT JOIN {reference_database}.{reference_table}"
-        join_query += " ON {main_table}.{join_field} = {reference_database}.{reference_table}.{reference_field}"
+
+        join_query = "LEFT JOIN {reference_source_alias_statement}"
+        join_query += " ON {main_table_alias}.{join_field} = {reference_source_alias}.{reference_field}"
         join_query = join_query.format(**query_data)
 
         self.joins.append(join_query)
