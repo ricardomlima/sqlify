@@ -14,6 +14,7 @@ class Hqlify:
 
     config = None
     selects = []
+    froms = []
     joins = []
     alias_table = {}
 
@@ -36,10 +37,14 @@ class Hqlify:
         main_database = self.config['main_database']
         main_table = self.config['main_table']
 
+        main_from_statement = self.get_source_alias_statement(main_database, main_table)
+        self.froms.append(main_from_statement)
+
         select_statements = ','.join(self.selects)
+        froms_statements = ','.join(self.froms)
         join_statements = ' '.join(self.joins)
         hql = "SELECT {} FROM {} {}".format(
-            select_statements, main_table, join_statements)
+            select_statements, froms_statements, join_statements)
 
         return hql
 
