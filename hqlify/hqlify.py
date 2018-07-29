@@ -14,7 +14,8 @@ class Hqlify:
 
     config = None
     selects = []
-    joins   = []
+    joins = []
+    alias_table = {}
 
     def __init__(self):
         """
@@ -25,21 +26,24 @@ class Hqlify:
         with open('config.json', 'r') as json_file:
             self.config = json.loads(json_file.read())
 
-
     def build_hql(self):
         """
         Execute steps to build HQL
 
         """
+
         self.build_fields()
+        main_database = self.config['main_database']
         main_table = self.config['main_table']
+
         select_statements = ','.join(self.selects)
-        join_statements   = ','.join(self.joins)
-        hql = "SELECT {} FROM {} {}".format(select_statements, main_table, join_statements)
+        join_statements = ' '.join(self.joins)
+        hql = "SELECT {} FROM {} {}".format(
+            select_statements, main_table, join_statements)
 
         return hql
 
-    def build_field_statement(self, table, column, alias=None, database=None):
+    def build_field_statement(self, database, table, column, alias=None):
         """
         Builds a field statement
 
@@ -48,15 +52,46 @@ class Hqlify:
         if alias == None:
             alias = column
 
-        if database == None:
-            source = "{}".format(table)
-        else:
-            source = "{}.{}".format(database, table)
+        source_alias = self.get_source_alias(database, table)
 
-        field_statement = "{source}.{column} AS {alias}".format(
-            **{"source": source, "column": column, "alias": alias})
+        field_statement = "{source_alias}.{column} AS {alias}".format(
+            **{"source_alias": source_alias, "column": column, "alias": alias})
 
         return field_statement
+
+    def get_source_alias(self, database, table, alias=None):
+        """
+        Map a databases table to an alias
+
+        """
+
+        if database in self.alias_table:
+            database_map = self.alias_table[database]
+        else:
+            database_map = {}
+            self.alias_table[database] = database_map
+
+        if table in database_map:
+            source_alias = database_map[table]
+        else:
+            source_alias = table
+            if alias != None:
+                source_alias = alias
+            self.alias_table[database][table] = source_alias
+
+        return source_alias
+
+    def get_source_alias_statement(self, database, table):
+        source_alias = self.get_source_alias(database, table)
+        source_alias_statement_params = {
+            "database": database,
+            "table": table,
+            "source_alias": source_alias,
+        }
+        statement = "{database}.{table} AS {source_alias}".format(
+            **source_alias_statement_params)
+
+        return statement
 
     def build_fields(self):
         """
@@ -65,7 +100,7 @@ class Hqlify:
         """
 
         main_database = self.config['main_database']
-        main_table    = self.config['main_table']
+        main_table = self.config['main_table']
         reference_database = self.config['reference_database']
         fields = self.config['fields']
 
@@ -89,7 +124,8 @@ class Hqlify:
                 else:
                     alias = column
 
-                field_statement = self.build_field_statement(table=main_table, column=column, alias=column)
+                field_statement = self.build_field_statement(
+                    database=main_database, table=main_table, column=column, alias=column)
                 self.selects.append(field_statement)
 
     def build_join_statement(self, main_table, join_field, reference_database, reference_table):
@@ -108,7 +144,7 @@ class Hqlify:
             "reference_field": reference_field,
             "reference_table": reference_table
         }
-        join_query  = "LEFT JOIN {reference_database}.{reference_table}"
+        join_query = "LEFT JOIN {reference_database}.{reference_table}"
         join_query += " ON {main_table}.{join_field} = {reference_database}.{reference_table}.{reference_field}"
         join_query = join_query.format(**query_data)
 
@@ -125,11 +161,13 @@ class Hqlify:
         description_statement = self.build_field_statement(
             database=reference_database,
             table=reference_table,
-            column=reference_description_field
+            column=reference_description_field,
         )
 
         self.selects.append(description_statement)
 
+
 if __name__ == "__main__":
     hqlify = Hqlify()
-    hqlify.build_hql()
+    hql = hqlify.build_hql()
+    print(hql)
