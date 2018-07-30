@@ -1,6 +1,6 @@
 """
 
-Program do abstract and automate hql code building
+Program to abstract and automate sql code building
 queries
 
 @author Ricardo M. Lima <ricardolima89@gmail.com>
@@ -10,7 +10,7 @@ queries
 import json
 
 
-class Hqlify:
+class Sqlify:
 
     config = None
     selects = []
@@ -27,7 +27,7 @@ class Hqlify:
         with open('config.json', 'r') as json_file:
             self.config = json.loads(json_file.read())
 
-    def build_hql(self):
+    def build_sql(self):
         """
         Execute steps to build HQL
 
@@ -44,10 +44,10 @@ class Hqlify:
         froms_statements = ','.join(self.froms)
         join_statements = ' '.join(self.joins)
 
-        hql = "SELECT {} FROM {} {}".format(
+        sql = "SELECT {} FROM {} {}".format(
             select_statements, froms_statements, join_statements)
 
-        return hql
+        return sql
 
     def build_field_statement(self, database, table, column, alias=None):
         """
@@ -210,6 +210,6 @@ class Hqlify:
 
 
 if __name__ == "__main__":
-    hqlify = Hqlify()
-    hql = hqlify.build_hql()
-    print(hql)
+    sqlify = Sqlify()
+    sql = hqlify.build_hql()
+    print(sql)
