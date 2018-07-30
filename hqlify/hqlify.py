@@ -87,6 +87,18 @@ class Hqlify:
 
         return source_alias
 
+    def check_table_alias_exists(self, database, table):
+        """
+        Check if alias exists
+
+        """
+
+        if database in self.alias_table:
+            if table in self.alias_table[database]:
+                return True
+
+        return False
+
     def get_source_alias_statement(self, database, table):
         source_alias = self.get_source_alias(database, table)
         source_alias_statement_params = {
@@ -116,6 +128,7 @@ class Hqlify:
                 join_field = field["on"]
                 reference_table = field["table"]
                 field_selector = field["field"] if "field" in field else None
+                alias = field["alias"] if "alias" in field else None
 
                 self.build_join_statement(
                     main_database,
@@ -123,10 +136,12 @@ class Hqlify:
                     join_field,
                     reference_database,
                     reference_table,
-                    field_selector
+                    field_selector,
+                    alias=alias,
                 )
 
             else:
+
                 column = field["column"]
                 if "alias" in field:
                     alias = field["alias"]
@@ -134,10 +149,10 @@ class Hqlify:
                     alias = column
 
                 field_statement = self.build_field_statement(
-                    database=main_database, table=main_table, column=column, alias=column)
+                    database=main_database, table=main_table, column=column, alias=alias)
                 self.selects.append(field_statement)
 
-    def build_join_statement(self, main_database, main_table, join_field, reference_database, reference_table, field=None):
+    def build_join_statement(self, main_database, main_table, join_field, reference_database, reference_table, field=None, alias=None):
         """
         Build join statements along with
         their respective select statements
@@ -145,9 +160,12 @@ class Hqlify:
         """
 
         field_selector = reference_table if field is None else field
+        alias = field_selector if alias is None else alias
+        reference_field_placeholder = "cd_{}"
+        description_field_placeholder = "desc_{}"
 
-        reference_field = "CD_{}".format(field_selector)
-        reference_description_field = "DESC_{}".format(field_selector)
+        reference_field = reference_field_placeholder.format(field_selector)
+        reference_description_field = description_field_placeholder.format(field_selector)
 
         reference_source_alias = self.get_source_alias(reference_database, reference_table)
         reference_source_alias_statement = self.get_source_alias_statement(reference_database, reference_table)
@@ -168,18 +186,24 @@ class Hqlify:
 
         self.joins.append(join_query)
 
+        reference_field_alias = reference_field_placeholder.format(alias)
+
         key_statement = self.build_field_statement(
             database=reference_database,
             table=reference_table,
-            column=reference_field
+            column=reference_field,
+            alias=reference_field_alias,
         )
 
         self.selects.append(key_statement)
+
+        description_field_alias = description_field_placeholder.format(alias)
 
         description_statement = self.build_field_statement(
             database=reference_database,
             table=reference_table,
             column=reference_description_field,
+            alias=description_field_alias,
         )
 
         self.selects.append(description_statement)
